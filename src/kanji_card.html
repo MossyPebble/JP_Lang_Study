@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <link rel="stylesheet" href="./public/assets/css/style.css">
+    <script>
+        // 데이터 로드
+        let data = window.addEventListener('DOMContentLoaded', async () => {
+            data = await window.electron.getTsvData('./src/public/assets/data/kanji_data');
+            
+            // 뜻: 집 가 인 데이터 출력
+            const filteredData = data.filter(row => row[2] === '歌');
+            console.log(filteredData);
+
+            return data;
+        });
+
+        let kanji_num = 0;
+
+        function refresh_kanji_html(){
+            const kanji_box = document.querySelector('.kanji_box');
+            const ko_meaning_box = document.querySelector('.ko_meaning_box');
+            const jp_announce_box = document.querySelector('.jp_announce_box');
+
+            const kanji = data[kanji_num][2];
+            const ko_meaning = kanji_num + '. ' + data[kanji_num][1];
+
+            var jp_announce;
+            if (data[kanji_num][4] == '\r'){
+                jp_announce = data[kanji_num][3];
+            } 
+            else{
+                jp_announce = data[kanji_num][4] + ', ' + data[kanji_num][3];
+            }
+
+            kanji_box.innerHTML = `<h1 style="font-size: 100px;">${kanji}</h1>`;
+            ko_meaning_box.innerHTML = `<h1>${ko_meaning}</h1>`;
+            jp_announce_box.innerHTML = `<h1>${jp_announce}</h1>`;
+        }
+
+        function get_prev_kanji(){
+            if(kanji_num === 0){
+                return;
+            }
+            kanji_num--;
+            refresh_kanji_html();
+        }
+
+        function get_next_kanji(){
+            if(kanji_num === data.length - 1){
+                return;
+            }
+            kanji_num++;
+            refresh_kanji_html();
+        }
+
+        // a, d나 화살표로 이전, 다음 한자 보기
+        // backspace로 뒤로가기
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'a' || e.key === 'ArrowLeft'){
+                get_prev_kanji();
+            }
+            if(e.key === 'd' || e.key === 'ArrowRight'){
+                get_next_kanji();
+            }
+            if(e.key === 'Backspace'){
+                window.location.href = 'kanji_menu.html';
+            }
+        });
+
+        window.onload = function(){
+            refresh_kanji_html();
+        }
+    </script>
+</head>
+<body style="background-color: paleturquoise;">
+    <div class="main_container">
+        <!-- 여기 div 작성할 때, 비율로 나누어서 만들어라. 창 크기 달라져도 괜찮게. -->
+        <div class="container" style="background-color: aliceblue; flex: 1">
+            <h1>
+                일본어 상용 한자 보기
+            </h1>
+        </div>
+        <div class="container" style="background-color: aquamarine; flex: 3">
+            <div class="container ko_meaning_box" style="flex: 2;">
+                <h1>0. 노래 가</h1>
+            </div>
+            <div class="container" style="flex: 6; background-color: paleturquoise;">
+                <div class="kanji_box container">
+                    <h1 style="font-size: 100px;">歌</h1>
+                </div>
+            </div>
+            <div class="container jp_announce_box" style="flex: 2;">
+                <h1>うた, か</h1>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <link rel="stylesheet" href="./public/assets/css/style.css">
+    <script>
+        // 주소를 입력하면, 해당 주소의 내용을 크롤링해서 가져온다.
+        let novel = null;
+        let novel_by_line = null;
+        let current_line_index = 0;
+
+        let novel_translate_practice = null;
+        let novel_translator = null;
+  
+        async function load_button(){
+            const adress = document.querySelector('.adress_box').value;
+            const index = document.querySelector('.index_box').value;
+
+            // 로드중이라는 메세지를 추가
+            const box = document.querySelector('#box');
+            const loading_message = document.createElement('p');
+            loading_message.textContent = '로딩중...';
+
+            // novel의 값이 불러오기 전까지 대기
+            novel = await window.electron.load_novel_data_from_address(adress, index);
+
+            await activate_novel_translate_practice();
+            await refresh_html();
+        }
+
+        // shift + 화살표로 이동
+        // shift + backspace로 이전으로 돌아가기
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'ArrowLeft' && e.shiftKey){
+                get_prev();
+            }
+            else if(e.key === 'ArrowRight' && e.shiftKey){
+                get_next();
+            }
+            else if(e.key === 'ArrowLeft' && e.shiftKey){
+                window.location.href = 'index.html';
+            }
+        });
+
+        async function activate_novel_translate_practice(){
+
+            // novel이 null이면, box에 오류 메세지 추가
+            if(novel == null){
+                const box = document.querySelector('#box');
+                const error_message = document.createElement('p');
+                error_message.textContent = '소설을 불러오지 못했습니다. 다시 해보셈.';
+                box.appendChild(error_message);
+                return;
+            }
+
+            console.log(novel.content);
+
+            // novel의 내용을 한 줄씩 잘라 배열로 집어넣음, \n, 。, ？, ！, !, ?를 기준으로 자름
+            novel_by_line = novel.content.split(/\n|。|？|！|!|\?/);
+            
+            // novel_by_line에서 공백만 있는 원소를 제거
+            novel_by_line = novel_by_line.filter((line) => line.trim() !== '');
+
+            // novel_translate_practice를 novel_by_line과 같은 길이의 빈 배열로 초기화
+            novel_translate_practice = new Array(novel_by_line.length).fill('');
+
+            // 만약, 이전에 저장한 내용이 있다면, novel_translate_practice에 저장
+            temp_data = await window.electron.get_previous_translation_data(novel.title, novel.index, novel.author);
+            console.log(temp_data);
+            if(temp_data.length === novel_translate_practice.length) novel_translate_practice = temp_data;
+
+            // forEach로 순회하며, 각 novel_by_line을 번역해 novel_translator_html에 저장
+            novel_translator_html = new Array(novel_by_line.length).fill('');
+            novel_by_line.forEach(async (line, index) => {
+                temp = get_analysis_data(line);
+                (temp).then((data) => {
+                    console.log(data);
+                    let translation = data.translation;
+                    let tokenization = data.tokenization;
+
+                    let tokenization_html = '';
+                    tokenization.forEach((token) => {
+                        tokenization_html += ko_token_to_html(token);
+                    });
+
+                    result_div = '<div style=\'font-size: 30px; align-items: center; text-decoration: underline; display: flex; flex-direction: row; flex-wrap: wrap; flex: 2;\'>' + tokenization_html + '</div>' + `<div style=\'flex: 1; font-size: 30px;\'>${translation}</div>`; 
+
+                    novel_translator_html[index] = result_div;
+                });
+            });
+        }
+
+        async function refresh_html(){
+
+            // novel_by_line이 null이면 refresh하지 않음
+            if(novel_by_line === null) return;
+            
+            // box에 있는 내용을 대체
+            const box = document.querySelector('#box');
+            box.innerHTML = `<div id="novel_line" class="container" style="flex: 1; font-size: 30px">
+                <h3>
+                    ${novel_by_line[current_line_index]}
+                </h3>
+            </div>
+            <div id="translate_text_area" style="flex: 2; width: 100%;">
+                <textarea id="my_translate" placeholder="여기 번역 입력..." style="width: 80%; height: 100%; font-family: font; font-size: 30px">${novel_translate_practice[current_line_index]}</textarea>
+            </div>
+            <div style='display: flex; flex: 2; flex-direction: column;' id="translator_information"></div>`;
+
+            // 자동으로 textarea에 focus
+            document.querySelector('#my_translate').focus();
+
+            // // 현재 줄의 번역을 가져와서 id가 translator_information인 div에 넣음
+            // if(novel_translator_html[current_line_index] === '')
+            //     novel_translator_html[current_line_index] = await get_translation(novel_by_line[current_line_index]);
+            document.querySelector('#translator_information').innerHTML = novel_translator_html[current_line_index];
+        }
+
+        function get_prev(){
+            if(novel_by_line === null) return;
+
+            // 다른 줄로 넘기면, 해당 줄을 저장함
+            save_translate();
+
+            if(current_line_index > 0){
+                current_line_index--;
+                refresh_html();
+            }
+        }
+
+        function get_next(){
+            if(novel_by_line === null) return;
+
+            // 다른 줄로 넘기면, 해당 줄을 저장함
+            save_translate();
+
+            if(current_line_index < novel_by_line.length - 1){
+                current_line_index++;
+                refresh_html();
+            }
+        }
+
+        function save_translate(){
+
+            // my_translate에 있는 내용을 novel_translate_practice에 저장
+            const my_translate = document.querySelector('#my_translate').value;
+            novel_translate_practice[current_line_index] = my_translate;
+
+            // novel_translate_practice에 저장된 내용을 파일로 저장
+            window.electron.save_novel_data({
+                title: novel.title,
+                author: novel.author,
+                content: novel_translate_practice,
+                index: novel.index,
+            });
+        }
+
+        async function get_analysis_data(sentence){
+
+            // 문장을 인코딩하여 번역 url로 전달
+            const encodedText = encodeURIComponent(sentence);
+            const translation_url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=ko&dt=t&q=' + encodedText;
+
+            // 해당 url로 get 요청을 보내고, 결과를 받아온다.
+            let translation = '';
+            await fetch(translation_url)
+                .then((response) => response.json())
+                .then((data) => {
+                    translation = data[0][0][0];
+                });
+
+            // 문장을 토큰화해 주는 api를 호출
+            const tokenization_url = 'https://mazii.net/api/tokenizer';
+            const tokenization_payload = {
+                "text": sentence
+            }
+            let tokenization = '';
+            await fetch(tokenization_url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(tokenization_payload)
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    tokenization = data.data;
+                });
+
+            return {
+                translation: translation,
+                tokenization: tokenization
+            }
+        }
+
+        function katakanaToHiragana(katakana){
+            return katakana.replace(/[\u30A1-\u30FA]/g, function(match) {
+                return String.fromCharCode(match.charCodeAt(0) - 0x60);
+            });
+        }
+
+        function ko_pumsa(pumsa){
+            switch (pumsa){
+                case '名詞':
+                    return '명사';
+                case '動詞':
+                    return '동사';
+                case '助詞':
+                    return '조사';
+                case '接尾':
+                    return '접미사';
+                case '格助詞':
+                    return '격조사';
+                case '接頭詞':
+                    return '접두사';
+                case '連体詞':
+                    return '관형사';
+                case '助動詞':
+                    return '조동사';
+                default:
+                    return pumsa;
+            }
+        }
+
+        function ko_token_to_html(token){
+            let word = token.split(',')[0].split('\t')[0];
+            let pumsa = ko_pumsa(token.split(',')[0].split('\t')[1]);
+            let announce = '';
+            if(token.split(',')[7] != null){
+                if(katakanaToHiragana(token.split(',')[7]) != word){
+                    announce = katakanaToHiragana(token.split(',')[7]);
+                }
+            }
+
+            let color = 'black';
+            switch (pumsa){
+                case '조사':
+                case '관형사':
+                    color = 'red';
+                    break;
+                case '동사':
+                    color = 'blue';
+                    break;
+            }
+
+            if(announce == ''){
+                return `<div title="${pumsa}" style="color: ${color};"><ruby><rb>${word}</rb></ruby></div>`;
+            }
+            return `<div title="${pumsa}" style="color: ${color};"><ruby><rb>${word}</rb><rt>${announce}</rt></ruby></div>`;
+        }
+    </script>
+     
+</head>
+<body style="background-color: paleturquoise;">
+    <div class="main_container" style="flex: 1;">
+        <!-- 여기 div 작성할 때, 비율로 나누어서 만들어라. 창 크기 달라져도 괜찮게. -->
+        <div class="container" style="background-color: aliceblue; flex: 1">
+            <h1>
+                웹소설로 일본어 공부
+            </h1>
+        </div>
+        <div class="container" style="background-color: aquamarine; flex: 5">
+            <div class="container" id="box" style="flex: 1;">
+                <textarea class="adress_box" placeholder="주소 적으셈...">274378</textarea>
+                <textarea class="index_box" placeholder="인덱스 적으셈...">1</textarea> 
+                <button onclick="load_button()">활성화</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

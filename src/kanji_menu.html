@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <link rel="stylesheet" href="./public/assets/css/style.css">
+    <script>
+        function show_kanji_card(){
+            window.location.href = 'kanji_card.html';
+        }
+        function start_kanji_test(){
+            window.location.href = 'kanji_test.html';
+        }
+        function start_meaning_test(){
+            window.location.href = 'meaning_test.html';
+        }
+
+        // backspace로 뒤로가기
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'Backspace'){
+                window.location.href = 'index.html';
+            }
+        });
+    </script>
+</head>
+<body style="background-color: paleturquoise;">
+    <div class="main_container" style="flex: 1;">
+        <!-- 여기 div 작성할 때, 비율로 나누어서 만들어라. 창 크기 달라져도 괜찮게. -->
+        <div class="container" style="background-color: aliceblue; flex: 1">
+            <h1>
+                일본어 상용 한자
+            </h1>
+        </div>
+        <div class="container" style="background-color: aquamarine; flex: 3">
+            <button onclick="show_kanji_card()">일본어 상용 한자 보기</button>
+            <button onclick="start_kanji_test()">상용 한자 테스트 (한자 표시)</button>
+            <button onclick="start_meaning_test()">상용 한자 테스트 (한글 뜻 표시)</button>
+        </div>
+    </div>
+</body>
+</html>

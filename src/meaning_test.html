@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <link rel="stylesheet" href="./public/assets/css/style.css">
+    <script>
+        let current_index = 0;
+        let answer = '';
+
+        // 데이터 로드
+        let data = window.addEventListener('DOMContentLoaded', async () => {
+            data = await window.electron.getTsvData('./src/public/assets/data/kanji_data');
+            
+            let randomNumbers = [];
+            for(let i = 0; i < 50; i++){
+                let randomNumber = Math.floor(Math.random() * data.length);
+                if(randomNumbers.includes(randomNumber)){
+                    i--;
+                } else {
+                    randomNumbers.push(randomNumber);
+                }
+            }
+
+            data = randomNumbers.map((randomNumber) => data[randomNumber]);
+            refresh_html();
+            return data;
+        });
+
+        function get_prev(){
+            if(current_index > 0){
+                current_index--;
+                refresh_html();
+            }
+        }
+
+        function get_next(){
+            if(current_index < data.length - 1){
+                current_index++;
+                refresh_html();
+            }
+        }
+
+        function refresh_html(){
+            answer = (data[current_index][4] == '\r') ? '<h1>' + data[current_index][2] + ', ' + data[current_index][3] + '</h1>' : '<h1>' + data[current_index][2] + ', ' + data[current_index][4] + ', ' + data[current_index][3] + '</h1>';
+            document.querySelector('.kanji_box').innerHTML = '<h1 style="font-size: 50px;">' + data[current_index][1] + '</h1>';
+            document.querySelector('.answer_box').innerHTML = '<button onclick="show_answer()">정답 보기</button>';
+        }
+
+        function show_answer(){
+            document.querySelector('.answer_box').innerHTML = answer;
+        }
+
+        // a, d나 화살표로 이전, 다음 한자 보기
+        // backspace로 뒤로가기
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'a' || e.key === 'ArrowLeft'){
+                get_prev();
+            }
+            if(e.key === 'd' || e.key === 'ArrowRight'){
+                get_next();
+            }
+            if(e.key === 'Backspace'){
+                window.location.href = 'kanji_menu.html';
+            }
+        });
+    </script>
+</head>
+<body style="background-color: paleturquoise;">
+    <div class="main_container">
+        <!-- 여기 div 작성할 때, 비율로 나누어서 만들어라. 창 크기 달라져도 괜찮게. -->
+        <div class="container" style="background-color: aliceblue; flex: 1">
+            <h1>
+                일본어 상용 한자 시험 (한글 뜻 표시)
+            </h1>
+        </div>
+        <div class="container" style="background-color: aquamarine; flex: 3">
+            <div class="container kanji_box" style="flex: 1;">
+                로드중...
+            </div>
+            <div class="container answer_box" style="flex: 1;">
+                <button onclick="show_answer()">정답 보기</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

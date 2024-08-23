@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <link rel="stylesheet" href="./public/assets/css/style.css">
+    <script>
+        function kanji_menu(){
+            window.location.href = 'kanji_menu.html';
+        }
+        function webnovel_menu(){
+            window.location.href = 'webnovel_menu.html';
+        } 
+    </script>
+</head>
+<body style="background-color: paleturquoise;">
+    <div class="main_container" style="flex: 1;">
+        <!-- 여기 div 작성할 때, 비율로 나누어서 만들어라. 창 크기 달라져도 괜찮게. -->
+        <div class="container" style="background-color: aliceblue; flex: 1">
+            <h1>
+                일본어 공부하려고 만듬 ㅋㅋ
+            </h1>
+        </div>
+        <div class="container" style="background-color: aquamarine; flex: 3">
+            <button onclick="kanji_menu()">일본어 상용 한자</button>
+            <button onclick="webnovel_menu()">웹소설 번역</button>
+        </div>
+    </div>
+</body>
+</html>
